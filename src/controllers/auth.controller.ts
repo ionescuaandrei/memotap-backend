@@ -135,3 +135,15 @@ export const getCurrentUser = async (
     res.status(500).json({ error: 'Failed to get user info' });
   }
 };
+
+// Sign out (client-side token removal, server confirmation)
+export const signOut = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  // With JWT, sign out is handled client-side by removing the token
+  // This endpoint confirms the sign out and can be used for logging/analytics
+  res.json({
+    message: 'Signed out successfully',
+  });
+};
