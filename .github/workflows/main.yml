@@ -14,7 +14,7 @@ jobs:
         with:
           # These secrets allow GitHub Actions to log into your server
           host: ${{ secrets.SSH_HOST }}
-          username: root
+          username: deployer_memotap
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           
