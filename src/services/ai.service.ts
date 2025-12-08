@@ -4,12 +4,15 @@ import { AIExtractionResult } from '../types';
 
 const MAX_RETRIES = 5; // Maximum number of key rotations to try
 
-// Get today's date for context in AI prompts
+// Get today's date and current time for context in AI prompts
 const getTodayContext = (): string => {
-  const today = new Date();
-  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const dayName = dayNames[today.getDay()];
-  return `Today is ${dayName}, ${today.toISOString().split('T')[0]}.`;
+  const now = new Date();
+  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const dayName = dayNames[now.getDay()];
+  const date = now.toISOString().split('T')[0];
+  const hours = now.getHours().toString().padStart(2, '0');
+  const minutes = now.getMinutes().toString().padStart(2, '0');
+  return `Today is ${dayName}, ${date}. Current time is ${hours}:${minutes}.`;
 };
 
 // Wrapper to execute Gemini calls with automatic key rotation on quota errors
@@ -86,7 +89,7 @@ Analyze the following voice transcription and extract structured data. Categoriz
 1. **Tasks**: Action items with specific things to do. Include:
    - task: The task description
    - day: The date in ISO format (YYYY-MM-DD). Use relative dates like "tomorrow", "next Monday" based on today's date.
-   - hour: Optional time in 24h format (HH:MM) if mentioned
+   - hour: Time in 24h format (HH:MM) - ONLY include this field if a specific time is mentioned or can be calculated (e.g., "at 2:30 PM" = "14:30", "in 3 hours" from current time). If no time is specified, omit this field entirely or set to null.
 
 2. **Notes**: Ideas, thoughts, information to remember that aren't tasks or reminders. Include:
    - title: A short descriptive title (generate one if not explicit)
@@ -109,7 +112,7 @@ Transcription:
 Respond ONLY with a valid JSON object in this exact format (no markdown, no explanation):
 {
   "tasks": [
-    { "task": "string", "day": "YYYY-MM-DD", "hour": "HH:MM" }
+    { "task": "string", "day": "YYYY-MM-DD", "hour": "HH:MM or null" }
   ],
   "notes": [
     { "title": "string", "content": "string" }
@@ -119,6 +122,7 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no expl
   ]
 }
 
+For tasks: set "hour" to the calculated time (HH:MM) if a time is specified/calculable, otherwise set to null.
 If a category has no items, use an empty array [].`;
 
     const result = await model.generateContent(prompt);
