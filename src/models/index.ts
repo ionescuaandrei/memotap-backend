@@ -1,5 +1,5 @@
-export { User, IUserDocument } from './User';
-export { Task, ITaskDocument } from './Task';
-export { Note, INoteDocument } from './Note';
-export { Reminder, IReminderDocument } from './Reminder';
-export { Recording, IRecordingDocument } from './Recording';
+export { User } from './User';
+export { Task } from './Task';
+export { Note } from './Note';
+export { Reminder } from './Reminder';
+export { Recording } from './Recording';
