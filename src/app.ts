@@ -66,7 +66,6 @@ const startServer = async () => {
 ║  Endpoints:                                                ║
 ║  • POST   /api/auth/register     - Register                ║
 ║  • POST   /api/auth/login        - Login                   ║
-║  • POST   /api/auth/google       - Google OAuth            ║
 ║  • GET    /api/auth/me           - Current user            ║
 ║                                                            ║
 ║  • POST   /api/recordings/process - Process audio          ║

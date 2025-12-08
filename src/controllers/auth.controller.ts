@@ -4,7 +4,6 @@ import {
   hashPassword,
   comparePassword,
   generateToken,
-  verifyGoogleToken,
 } from '../services/auth.service';
 import { AuthRequest } from '../types';
 
@@ -75,9 +74,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Check if user has password (might be OAuth-only user)
+    // Check if user has password
     if (!user.password) {
-      res.status(401).json({ error: 'Please sign in with Google' });
+      res.status(401).json({ error: 'Invalid credentials' });
       return;
     }
 
@@ -103,61 +102,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Login failed' });
-  }
-};
-
-// Google OAuth login/register
-export const googleAuth = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { idToken } = req.body;
-
-    if (!idToken) {
-      res.status(400).json({ error: 'Google ID token is required' });
-      return;
-    }
-
-    // Verify Google token
-    const googleUser = await verifyGoogleToken(idToken);
-    if (!googleUser) {
-      res.status(401).json({ error: 'Invalid Google token' });
-      return;
-    }
-
-    // Find or create user
-    let user = await User.findOne({
-      $or: [{ googleId: googleUser.googleId }, { email: googleUser.email }],
-    });
-
-    if (user) {
-      // Update googleId if not set (user registered with email first)
-      if (!user.googleId) {
-        user.googleId = googleUser.googleId;
-        await user.save();
-      }
-    } else {
-      // Create new user
-      user = await User.create({
-        email: googleUser.email,
-        name: googleUser.name,
-        googleId: googleUser.googleId,
-      });
-    }
-
-    // Generate token
-    const token = generateToken({ id: user._id.toString(), email: user.email });
-
-    res.json({
-      message: 'Google authentication successful',
-      token,
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-      },
-    });
-  } catch (error) {
-    console.error('Google auth error:', error);
-    res.status(500).json({ error: 'Google authentication failed' });
   }
 };
 

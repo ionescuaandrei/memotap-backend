@@ -1,5 +1,7 @@
-import { getGeminiClient } from '../config/gemini';
+import { getGeminiClient, rotateToNextKey, isQuotaError } from '../config/gemini';
 import { AIExtractionResult } from '../types';
+
+const MAX_RETRIES = 5; // Maximum number of key rotations to try
 
 // Get today's date for context in AI prompts
 const getTodayContext = (): string => {
@@ -9,43 +11,74 @@ const getTodayContext = (): string => {
   return `Today is ${dayName}, ${today.toISOString().split('T')[0]}.`;
 };
 
+// Wrapper to execute Gemini calls with automatic key rotation on quota errors
+const executeWithRetry = async <T>(
+  operation: () => Promise<T>
+): Promise<T> => {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      if (isQuotaError(error)) {
+        const rotated = rotateToNextKey();
+        if (!rotated) {
+          throw new Error('All Gemini API keys have been exhausted. Please try again later.');
+        }
+        // Continue to next attempt with new key
+      } else {
+        // Non-quota error, throw immediately
+        throw error;
+      }
+    }
+  }
+
+  throw lastError || new Error('Max retries exceeded');
+};
+
 // Transcribe audio using Gemini
 export const transcribeAudio = async (
   audioBuffer: Buffer,
   mimeType: string
 ): Promise<string> => {
-  const genAI = getGeminiClient();
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  return executeWithRetry(async () => {
+    const genAI = getGeminiClient();
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-  // Convert buffer to base64
-  const audioBase64 = audioBuffer.toString('base64');
+    // Convert buffer to base64
+    const audioBase64 = audioBuffer.toString('base64');
 
-  const result = await model.generateContent([
-    {
-      inlineData: {
-        mimeType: mimeType,
-        data: audioBase64,
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          mimeType: mimeType,
+          data: audioBase64,
+        },
       },
-    },
-    {
-      text: 'Transcribe this audio recording exactly as spoken. Only output the transcription, nothing else.',
-    },
-  ]);
+      {
+        text: 'Transcribe this audio recording exactly as spoken. Only output the transcription, nothing else.',
+      },
+    ]);
 
-  const response = result.response;
-  const transcription = response.text().trim();
+    const response = result.response;
+    const transcription = response.text().trim();
 
-  return transcription;
+    return transcription;
+  });
 };
 
 // Extract structured data from transcription using Gemini
 export const extractStructuredData = async (
   transcription: string
 ): Promise<AIExtractionResult> => {
-  const genAI = getGeminiClient();
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  return executeWithRetry(async () => {
+    const genAI = getGeminiClient();
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-  const prompt = `${getTodayContext()}
+    const prompt = `${getTodayContext()}
 
 Analyze the following voice transcription and extract structured data. Categorize the content into:
 
@@ -87,41 +120,42 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no expl
 
 If a category has no items, use an empty array [].`;
 
-  const result = await model.generateContent(prompt);
-  const response = result.response;
-  let text = response.text().trim();
+    const result = await model.generateContent(prompt);
+    const response = result.response;
+    let text = response.text().trim();
 
-  // Remove markdown code blocks if present
-  if (text.startsWith('```json')) {
-    text = text.slice(7);
-  } else if (text.startsWith('```')) {
-    text = text.slice(3);
-  }
-  if (text.endsWith('```')) {
-    text = text.slice(0, -3);
-  }
-  text = text.trim();
+    // Remove markdown code blocks if present
+    if (text.startsWith('```json')) {
+      text = text.slice(7);
+    } else if (text.startsWith('```')) {
+      text = text.slice(3);
+    }
+    if (text.endsWith('```')) {
+      text = text.slice(0, -3);
+    }
+    text = text.trim();
 
-  try {
-    const parsed = JSON.parse(text) as AIExtractionResult;
+    try {
+      const parsed = JSON.parse(text) as AIExtractionResult;
 
-    // Validate and ensure arrays exist
-    return {
-      tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
-      notes: Array.isArray(parsed.notes) ? parsed.notes : [],
-      reminders: Array.isArray(parsed.reminders) ? parsed.reminders : [],
-    };
-  } catch (error) {
-    console.error('Failed to parse AI response:', text);
-    console.error('Parse error:', error);
+      // Validate and ensure arrays exist
+      return {
+        tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
+        notes: Array.isArray(parsed.notes) ? parsed.notes : [],
+        reminders: Array.isArray(parsed.reminders) ? parsed.reminders : [],
+      };
+    } catch (error) {
+      console.error('Failed to parse AI response:', text);
+      console.error('Parse error:', error);
 
-    // Return empty result on parse failure
-    return {
-      tasks: [],
-      notes: [],
-      reminders: [],
-    };
-  }
+      // Return empty result on parse failure
+      return {
+        tasks: [],
+        notes: [],
+        reminders: [],
+      };
+    }
+  });
 };
 
 // Combined function: transcribe and extract in one call

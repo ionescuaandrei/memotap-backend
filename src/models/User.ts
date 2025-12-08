@@ -14,27 +14,17 @@ const userSchema = new Schema<IUserDocument>(
     },
     password: {
       type: String,
-      required: false, // Optional for OAuth users
+      required: true,
     },
     name: {
       type: String,
       required: true,
       trim: true,
     },
-    googleId: {
-      type: String,
-      required: false,
-      unique: true,
-      sparse: true, // Allows multiple null values
-    },
   },
   {
     timestamps: true,
   }
 );
-
-// Index for faster queries
-userSchema.index({ email: 1 });
-userSchema.index({ googleId: 1 });
 
 export const User = mongoose.model<IUserDocument>('User', userSchema);
