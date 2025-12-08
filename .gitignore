@@ -21,3 +21,4 @@ npm-debug.log*
 
 # Uploads (if storing locally)
 uploads/
+ecosystem.config.js 
