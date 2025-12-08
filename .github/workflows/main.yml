@@ -1,23 +1,36 @@
-name: Deploy Backend to Production
+name: Deploy Backend
 
 on:
   push:
     branches:
       - main
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy using PM2
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          # SSH details to connect to your server
-          host: ${{ secrets.SSH_HOST }} # Store your server IP/domain in GitHub Secrets
+          # These secrets allow GitHub Actions to log into your server
+          host: ${{ secrets.SSH_HOST }}
           username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }} # The private key stored securely in GitHub Secrets
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
           
-          # The command to execute on the server
-          # This command tells PM2 to fetch the latest code, install dependencies, build, and restart the app.
+          # The script runs commands on your server
           script: |
-            cd /var/www/memotap.abyssalis.com/current/
-            pm2 deploy ecosystem.config.js production update
+            # 1. Go to the project folder
+            cd /var/www/memotap.abyssalis.com/repo
+
+            # 2. Pull the latest code (This works now thanks to your Deploy Key!)
+            git pull origin main
+
+            # 3. Install new dependencies
+            npm install
+
+            # 4. Build the application (Crucial: creates dist/app.js)
+            npm run build
+
+            # 5. Restart PM2 to apply changes
+            pm2 restart ecosystem.config.js
