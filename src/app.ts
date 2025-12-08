@@ -60,8 +60,8 @@ const startServer = async () => {
 ╔════════════════════════════════════════════════════════════╗
 ║                    MemoTap Backend                         ║
 ╠════════════════════════════════════════════════════════════╣
-║  Server running on: http://localhost:${config.port}                 ║
-║  Environment: ${config.nodeEnv.padEnd(43)}║
+║  Server running on: http://localhost:${config.port}                  ║
+║  Environment: ${config.nodeEnv.padEnd(43)}  ║
 ║                                                            ║
 ║  Endpoints:                                                ║
 ║  • POST   /api/auth/register     - Register                ║

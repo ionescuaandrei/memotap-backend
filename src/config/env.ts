@@ -18,4 +18,5 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || 'default-secret',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   geminiApiKeys: parseGeminiApiKeys(),
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
 };

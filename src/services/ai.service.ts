@@ -1,4 +1,5 @@
 import { getGeminiClient, rotateToNextKey, isQuotaError } from '../config/gemini';
+import { config } from '../config/env';
 import { AIExtractionResult } from '../types';
 
 const MAX_RETRIES = 5; // Maximum number of key rotations to try
@@ -46,7 +47,7 @@ export const transcribeAudio = async (
 ): Promise<string> => {
   return executeWithRetry(async () => {
     const genAI = getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: config.geminiModel });
 
     // Convert buffer to base64
     const audioBase64 = audioBuffer.toString('base64');
@@ -76,7 +77,7 @@ export const extractStructuredData = async (
 ): Promise<AIExtractionResult> => {
   return executeWithRetry(async () => {
     const genAI = getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: config.geminiModel });
 
     const prompt = `${getTodayContext()}
 
