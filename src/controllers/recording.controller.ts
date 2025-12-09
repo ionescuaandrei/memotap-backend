@@ -161,3 +161,84 @@ export const getRecording = async (
     res.status(500).json({ error: 'Failed to get recording' });
   }
 };
+
+// Update recording transcription
+export const updateRecording = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const { id } = req.params;
+    const { transcription } = req.body;
+
+    if (!transcription || typeof transcription !== 'string') {
+      res.status(400).json({ error: 'Transcription is required' });
+      return;
+    }
+
+    const recording = await Recording.findOneAndUpdate(
+      { _id: id, userId: req.user.id },
+      { transcription, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!recording) {
+      res.status(404).json({ error: 'Recording not found' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      recording,
+    });
+  } catch (error) {
+    console.error('Update recording error:', error);
+    res.status(500).json({ error: 'Failed to update recording' });
+  }
+};
+
+// Delete recording and all associated data
+export const deleteRecording = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: 'Not authenticated' });
+      return;
+    }
+
+    const { id } = req.params;
+
+    const recording = await Recording.findOne({
+      _id: id,
+      userId: req.user.id,
+    });
+
+    if (!recording) {
+      res.status(404).json({ error: 'Recording not found' });
+      return;
+    }
+
+    // Delete all associated data
+    await Promise.all([
+      Task.deleteMany({ recordingId: recording._id }),
+      Note.deleteMany({ recordingId: recording._id }),
+      Reminder.deleteMany({ recordingId: recording._id }),
+      Recording.deleteOne({ _id: recording._id }),
+    ]);
+
+    res.json({
+      success: true,
+      message: 'Recording and associated data deleted',
+    });
+  } catch (error) {
+    console.error('Delete recording error:', error);
+    res.status(500).json({ error: 'Failed to delete recording' });
+  }
+};
