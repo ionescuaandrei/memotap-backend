@@ -7,12 +7,12 @@ const MAX_RETRIES = 5; // Maximum number of key rotations to try
 // Get today's date and current time for context in AI prompts
 const getTodayContext = (): string => {
   const now = new Date();
-  const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const dayName = dayNames[now.getDay()];
   const date = now.toISOString().split('T')[0];
   const hours = now.getHours().toString().padStart(2, '0');
   const minutes = now.getMinutes().toString().padStart(2, '0');
-  return `Today is ${dayName}, ${date}. Current time is ${hours}:${minutes}.`;
+  // Using day index (0=Sunday, 1=Monday, etc.) to let AI interpret in any language
+  const dayIndex = now.getDay();
+  return `Today's date is ${date} (day of week index: ${dayIndex}, where 0=Sunday, 1=Monday, ..., 6=Saturday). Current time is ${hours}:${minutes}.`;
 };
 
 // Wrapper to execute Gemini calls with automatic key rotation on quota errors
@@ -84,27 +84,30 @@ export const extractStructuredData = async (
 
     const prompt = `${getTodayContext()}
 
+IMPORTANT: Detect the language of the transcription and generate ALL content (task descriptions, note titles, note content, reminder messages) in that SAME language. Do not translate - keep everything in the original language of the transcription.
+
 Analyze the following voice transcription and extract structured data. Categorize the content into:
 
 1. **Tasks**: Action items with specific things to do. Include:
-   - task: The task description
+   - task: The task description (IN THE SAME LANGUAGE AS THE TRANSCRIPTION)
    - day: The date in ISO format (YYYY-MM-DD). Use relative dates like "tomorrow", "next Monday" based on today's date.
    - hour: Time in 24h format (HH:MM) - ONLY include this field if a specific time is mentioned or can be calculated (e.g., "at 2:30 PM" = "14:30", "in 3 hours" from current time). If no time is specified, omit this field entirely or set to null.
 
 2. **Notes**: Ideas, thoughts, information to remember that aren't tasks or reminders. Include:
-   - title: A short descriptive title (generate one if not explicit)
-   - content: The full note content
+   - title: A short descriptive title in the transcription's language (generate one if not explicit)
+   - content: The full note content (IN THE SAME LANGUAGE AS THE TRANSCRIPTION)
 
 3. **Reminders**: Things to be reminded about at a specific time/date. Include:
-   - message: What to be reminded about
+   - message: What to be reminded about (IN THE SAME LANGUAGE AS THE TRANSCRIPTION)
    - remindAt: ISO datetime string (YYYY-MM-DDTHH:MM:SS) for when to send the reminder
 
 Guidelines:
+- CRITICAL: All text content must be in the same language as the transcription (e.g., if transcription is in Romanian, output Romanian text)
 - If no specific date/time is mentioned for a task, use today's date
 - If no specific time is mentioned for a reminder, default to 09:00
 - Separate content appropriately - one voice recording may contain multiple items
 - If content doesn't fit any category, make it a note
-- Be smart about understanding natural language dates ("tomorrow", "next week", "in 2 hours")
+- Be smart about understanding natural language dates in any language ("tomorrow"/"mâine", "next week"/"săptămâna viitoare", "in 2 hours"/"în 2 ore", etc.)
 
 Transcription:
 "${transcription}"
