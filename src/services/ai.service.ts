@@ -84,49 +84,39 @@ export const extractStructuredData = async (
 
     const prompt = `${getTodayContext()}
 
-IMPORTANT: Detect the language of the transcription and generate ALL content (task descriptions, note titles, note content, reminder messages) in that SAME language. Do not translate - keep everything in the original language of the transcription.
+You are a multilingual assistant. Your task is to extract structured data from a voice transcription.
 
-Analyze the following voice transcription and extract structured data. Categorize the content into:
+**CRITICAL LANGUAGE RULE**: You MUST output all text content (task descriptions, note titles, note content, reminder messages) in the EXACT SAME LANGUAGE as the transcription. If the transcription is in Romanian, output Romanian. If it's in Spanish, output Spanish. NEVER translate to English. Preserve the original language exactly.
 
-1. **Tasks**: Action items with specific things to do. Include:
-   - task: The task description (IN THE SAME LANGUAGE AS THE TRANSCRIPTION)
-   - day: The date in ISO format (YYYY-MM-DD). Use relative dates like "tomorrow", "next Monday" based on today's date.
-   - hour: Time in 24h format (HH:MM) - ONLY include this field if a specific time is mentioned or can be calculated (e.g., "at 2:30 PM" = "14:30", "in 3 hours" from current time). If no time is specified, omit this field entirely or set to null.
+Analyze the following voice transcription and extract structured data into these categories:
 
-2. **Notes**: Ideas, thoughts, information to remember that aren't tasks or reminders. Include:
-   - title: A short descriptive title in the transcription's language (generate one if not explicit)
-   - content: The full note content (IN THE SAME LANGUAGE AS THE TRANSCRIPTION)
+1. **Tasks**: Action items to do
+   - task: The task description (KEEP ORIGINAL LANGUAGE - do NOT translate)
+   - day: ISO format date (YYYY-MM-DD)
+   - hour: 24h time (HH:MM) if specified, otherwise null
 
-3. **Reminders**: Things to be reminded about at a specific time/date. Include:
-   - message: What to be reminded about (IN THE SAME LANGUAGE AS THE TRANSCRIPTION)
-   - remindAt: ISO datetime string (YYYY-MM-DDTHH:MM:SS) for when to send the reminder
+2. **Notes**: Ideas, thoughts, information to remember
+   - title: Short title (KEEP ORIGINAL LANGUAGE - do NOT translate)
+   - content: Full content (KEEP ORIGINAL LANGUAGE - do NOT translate)
 
-Guidelines:
-- CRITICAL: All text content must be in the same language as the transcription (e.g., if transcription is in Romanian, output Romanian text)
-- If no specific date/time is mentioned for a task, use today's date
-- If no specific time is mentioned for a reminder, default to 09:00
-- Separate content appropriately - one voice recording may contain multiple items
-- If content doesn't fit any category, make it a note
-- Be smart about understanding natural language dates in any language ("tomorrow"/"mâine", "next week"/"săptămâna viitoare", "in 2 hours"/"în 2 ore", etc.)
+3. **Reminders**: Time-sensitive notifications
+   - message: Reminder text (KEEP ORIGINAL LANGUAGE - do NOT translate)
+   - remindAt: ISO datetime (YYYY-MM-DDTHH:MM:SS)
+
+Rules:
+- Default task date: today
+- Default reminder time: 09:00
+- Understand dates in any language ("mâine" = tomorrow, "săptămâna viitoare" = next week, etc.)
 
 Transcription:
 "${transcription}"
 
-Respond ONLY with a valid JSON object in this exact format (no markdown, no explanation):
+JSON response only (no markdown):
 {
-  "tasks": [
-    { "task": "string", "day": "YYYY-MM-DD", "hour": "HH:MM or null" }
-  ],
-  "notes": [
-    { "title": "string", "content": "string" }
-  ],
-  "reminders": [
-    { "message": "string", "remindAt": "YYYY-MM-DDTHH:MM:SS" }
-  ]
-}
-
-For tasks: set "hour" to the calculated time (HH:MM) if a time is specified/calculable, otherwise set to null.
-If a category has no items, use an empty array [].`;
+  "tasks": [{ "task": "string in original language", "day": "YYYY-MM-DD", "hour": "HH:MM or null" }],
+  "notes": [{ "title": "string in original language", "content": "string in original language" }],
+  "reminders": [{ "message": "string in original language", "remindAt": "YYYY-MM-DDTHH:MM:SS" }]
+}`;
 
     const result = await model.generateContent(prompt);
     const response = result.response;
