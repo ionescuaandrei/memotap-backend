@@ -21,7 +21,7 @@ jobs:
           # The script runs commands on your server
           script: |
             # 1. Go to the project folder
-            cd /var/www/memotap.abyssalis.com/repo
+            cd /var/www/old/memotap.abyssalis.com/repo
 
             # 2. Pull the latest code (This works now thanks to your Deploy Key!)
             git pull origin main
