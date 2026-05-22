@@ -105,3 +105,20 @@ export interface ProcessingResponse {
     reminders: IReminder[];
   };
 }
+
+export interface S3UploadOptions {
+  bucket?: string;
+  key: string;
+  body: Buffer | Uint8Array | string;
+  contentType?: string;
+  cacheControl?: string;
+  contentDisposition?: string;
+  metadata?: Record<string, string>;
+}
+
+export interface S3UploadResult {
+  bucket: string;
+  key: string;
+  etag?: string;
+  url: string;
+}
